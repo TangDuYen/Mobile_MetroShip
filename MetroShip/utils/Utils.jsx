@@ -2,7 +2,7 @@ import React from 'react'
 
 function Utils() {
   return (
-    <div>
+    <div className='body'>
       
     </div>
   )
