@@ -1,6 +1,6 @@
 import React from 'react'
 
-function test() {
+function QRScanner() {
   return (
     <div>
       
@@ -8,4 +8,4 @@ function test() {
   )
 }
 
-export default test
+export default QRScanner
