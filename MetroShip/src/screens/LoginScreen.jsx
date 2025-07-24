@@ -50,7 +50,7 @@ export default function LoginScreen() {
 
       // ✅ Kiểm tra quyền "CargoLoader"
       const assignmentRoles = result?.staffAssignments?.map(s => s.assignedRole);
-      const hasCargoRole = assignmentRoles?.includes('Checker');
+      const hasCargoRole = assignmentRoles?.includes('CargoLoader');
 
       if (!hasCargoRole) {
         Alert.alert(
