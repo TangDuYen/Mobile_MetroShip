@@ -17,7 +17,7 @@
     "@react-navigation/stack": "^7.3.2",
     "@reduxjs/toolkit": "^2.8.2",
     "expo": "53.0.20",
-    "expo-barcode-scanner": "^13.0.1",
+    "expo-camera": "~16.1.11",
     "expo-font": "~13.3.2",
     "expo-status-bar": "~2.2.3",
     "install": "^0.13.0",

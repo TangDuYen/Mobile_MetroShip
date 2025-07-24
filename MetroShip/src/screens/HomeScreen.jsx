@@ -106,7 +106,7 @@ export default function HomeScreen() {
       <Text style={styles.itemSubText}>Tổng chi phí: {item.totalCostVnd} VND</Text>
       <TouchableOpacity
         onPress={() =>
-          navigation.navigate('OrderDetails', {
+          navigation.navigate('Scan', {
             trackingCode: item.trackingCode,
             staffId,
             stationId,
@@ -128,8 +128,6 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.leftHeader}>Trạm hiện tại: {stationName}</Text>
-
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Text style={styles.rightHeader}>Hello {role}</Text>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
@@ -137,7 +135,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
       </View>
-
+      <Text style={styles.leftHeader}>Trạm hiện tại: {stationName}</Text>
       <TextInput
         style={styles.searchInput}
         placeholder="Tìm theo mã đơn hàng..."
@@ -169,7 +167,7 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between', // 👈 tách trái/phải
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
   },

@@ -1,19 +1,18 @@
-import { ActivityIndicator, Alert, Button, Text, View, StyleSheet, FlatList } from 'react-native';
+import { ActivityIndicator, Alert, Button, FlatList, StyleSheet, Text, View } from 'react-native';
 import React, { useEffect, useState } from 'react';
-import { useNavigation } from '@react-navigation/native';
 
 import { API_URL } from '../config/api';
-import { useRoute } from '@react-navigation/native';
 import shipmentMapping from './../config/mapping';
+import { useNavigation } from '@react-navigation/native';
+import { useRoute } from '@react-navigation/native';
 
 export default function OrderDetailsScreen() {
   const route = useRoute();
-  const { trackingCode } = route.params;
+  const { trackingCode, staffId, stationId } = route.params;
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [parcels, setParcels] = useState([]);
   const navigation = useNavigation();
-
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -68,7 +67,7 @@ export default function OrderDetailsScreen() {
   if (!order) return <Text>Không tìm thấy đơn hàng.</Text>;
 
   return (
-    <View style={{ padding: 16 }}>
+    <View style={{ padding: 16, marginTop: 20 }}>
       <View style={{ marginBottom: 12 }}>
         <Button title="Quay lại" onPress={() => navigation.navigate('Home')} />
       </View>
