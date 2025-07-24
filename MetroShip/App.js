@@ -1,14 +1,11 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import AppNavigator from './src/navigation/AppNavigator';
-import HomeScreen from './src/screens/HomeScreen';
-import LoginScreen from './src/screens/LoginScreen';
 
 export default function App() {
   return (
     <>
-      <AppNavigator />
-      {/* <HomeScreen /> */}
+      <AppNavigator/>
     </>
   );
 }

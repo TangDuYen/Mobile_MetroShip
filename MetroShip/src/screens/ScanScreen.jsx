@@ -1,11 +1,11 @@
-import React from 'react'
+import { useRoute } from '@react-navigation/native';
 
-function ScanScreen() {
+export default function ScanScreen() {
+  const route = useRoute();
+  const { trackingCode, staffId, stationId } = route.params;
+
   return (
-    <div>
-      
-    </div>
-  )
+    <>
+    </>
+  );
 }
-
-export default ScanScreen

@@ -1,5 +1,5 @@
 const publicRuntimeConfig = {
-//   API_URL: "https://localhost:7085/api/",
+  // API_URL: "https://localhost:7085/api/",
   API_URL: "https://metroship-cosdy.ondigitalocean.app/api/",
 };
 
