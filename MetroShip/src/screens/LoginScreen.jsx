@@ -31,7 +31,7 @@ export default function LoginScreen() {
     }
 
     try {
-      const res = await fetch(`${API_URL}/auth/authentication`, {
+      const res = await fetch(`${API_URL}auth/authentication`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -50,7 +50,7 @@ export default function LoginScreen() {
 
       // ✅ Kiểm tra quyền "CargoLoader"
       const assignmentRoles = result?.staffAssignments?.map(s => s.assignedRole);
-      const hasCargoRole = assignmentRoles?.includes('CargoLoader');
+      const hasCargoRole = assignmentRoles?.includes('Checker');
 
       if (!hasCargoRole) {
         Alert.alert(

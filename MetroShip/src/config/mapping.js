@@ -1,0 +1,21 @@
+export default shipmentMapping = {
+    0: 'Đợi thanh toán',
+    1: 'Từ chối',
+    2: 'Không thanh toán',
+    3: 'Đã hủy',
+    4: 'Đợi hoàn tiền',
+    5: 'Đã hoàn tiền',
+    6: 'Không xuất hiện',
+    7: 'Đợi gửi hàng',
+    8: 'Đã lấy hàng',
+    9: 'Đang vận chuyển',
+    10: 'Đợi lấy hàng',
+    11: 'Thu phí tồn kho',
+    12: 'Quá hạn',
+    13: 'Hoàn đơn',
+    14: 'Đang hoàn đơn',
+    15: 'Đã hoàn đơn',
+    16: 'Đợi phản hồi',
+    17: 'Đã hoàn thành',
+    18: 'Delayed'
+}
