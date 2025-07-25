@@ -2,13 +2,14 @@ import { ActivityIndicator, Alert, Button, FlatList, StyleSheet, Text, View } fr
 import React, { useEffect, useState } from 'react';
 
 import { API_URL } from '../config/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import shipmentMapping from './../config/mapping';
 import { useNavigation } from '@react-navigation/native';
 import { useRoute } from '@react-navigation/native';
 
 export default function OrderDetailsScreen() {
   const route = useRoute();
-  const { trackingCode, staffId, stationId } = route.params;
+  const { trackingCode } = route.params;
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [parcels, setParcels] = useState([]);
@@ -17,13 +18,22 @@ export default function OrderDetailsScreen() {
   useEffect(() => {
     const fetchDetails = async () => {
       try {
+        const token = await AsyncStorage.getItem('token');
         //SHIPMENT
-        const res = await fetch(`${API_URL}shipments/${trackingCode}`);
+        const res = await fetch(`${API_URL}shipments/${trackingCode}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
+        });
         const result = await res.json();
         const shipment = result?.data;
 
         //PARCELS
-        const parcelsRes = await fetch(`${API_URL}parcels?PageSize=1000`);
+        const parcelsRes = await fetch(`${API_URL}parcels?PageSize=1000`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
+        });
         const parcelsData = await parcelsRes.json();
         const allParcels = parcelsData?.data?.items || [];
 
@@ -46,10 +56,13 @@ export default function OrderDetailsScreen() {
 
   const handleAction = async (action) => {
     try {
-      const res = await fetch(`${API_URL}shipments/${trackingCode}/status`, {
-        method: 'POST',
+      const res = await fetch(`${API_URL}shipments/staff/update-status-at-station`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({
+          trackingCode,
+          currentStationId: order?.currentStationId,
+        }),
       });
 
       if (res.ok) {
