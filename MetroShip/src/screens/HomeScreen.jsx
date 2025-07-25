@@ -60,8 +60,14 @@ export default function HomeScreen() {
 
   const fetchShipments = async (stationId) => {
     try {
+      const token = await AsyncStorage.getItem('token');
       const res = await fetch(
-        `${API_URL}shipments?PageSize=1000&DepartureStationId=${stationId}`
+        `${API_URL}shipments?PageSize=1000&DepartureStationId=${stationId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, 
+          },
+        }
       );
       const result = await res.json();
       const items = result?.data?.items || [];
@@ -77,7 +83,7 @@ export default function HomeScreen() {
   const handleSearch = (text) => {
     setSearch(text);
     const filtered = orders.filter((item) =>
-      item.code?.toLowerCase().includes(text.toLowerCase())
+      item.trackingCode?.toLowerCase().includes(text.toLowerCase())
     );
     setFilteredOrders(filtered);
   };
