@@ -56,15 +56,20 @@ export default function OrderDetailsScreen() {
 
   const handleAction = async (action) => {
     try {
+      const token = await AsyncStorage.getItem('token');
+      console.log(token);
+
       const res = await fetch(`${API_URL}shipments/staff/update-status-at-station`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({
           trackingCode,
           currentStationId: order?.currentStationId,
         }),
       });
-
       if (res.ok) {
         Alert.alert('Thành công', `Đã thực hiện hành động: ${action}`);
       } else {
