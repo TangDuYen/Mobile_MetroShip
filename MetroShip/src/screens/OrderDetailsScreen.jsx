@@ -55,29 +55,30 @@ export default function OrderDetailsScreen() {
   }, [trackingCode]);
 
   const handleAction = async (action) => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      console.log(token);
+    Alert.alert('Thành công', `Đã thực hiện hành động: ${action}`);
+    // try {
+    //   const token = await AsyncStorage.getItem('token');
+    //   console.log(token);
 
-      const res = await fetch(`${API_URL}shipments/staff/update-status-at-station`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          trackingCode,
-          currentStationId: order?.currentStationId,
-        }),
-      });
-      if (res.ok) {
-        Alert.alert('Thành công', `Đã thực hiện hành động: ${action}`);
-      } else {
-        Alert.alert('Lỗi', 'Không cập nhật được trạng thái');
-      }
-    } catch (err) {
-      Alert.alert('Lỗi', 'Không thể kết nối server');
-    }
+    //   const res = await fetch(`${API_URL}shipments/staff/update-status-at-station`, {
+    //     method: 'PUT',
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //       'Authorization': `Bearer ${token}`,
+    //     },
+    //     body: JSON.stringify({
+    //       trackingCode,
+    //       currentStationId: order?.currentStationId,
+    //     }),
+    //   });
+    //   if (res.ok) {
+    //     Alert.alert('Thành công', `Đã thực hiện hành động: ${action}`);
+    //   } else {
+    //     Alert.alert('Lỗi', 'Không cập nhật được trạng thái');
+    //   }
+    // } catch (err) {
+    //   Alert.alert('Lỗi', 'Không thể kết nối server');
+    // }
   };
 
   if (loading) return <ActivityIndicator size="large" />;
@@ -122,13 +123,13 @@ export default function OrderDetailsScreen() {
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: 20 }}>
         <View style={{ flex: 1, marginHorizontal: 4 }}>
-          <Button title="Lên hàng" onPress={() => handleAction('LOAD')} />
+          <Button title="Lên hàng" onPress={() => handleAction('Lên hàng')} />
         </View>
         <View style={{ flex: 1, marginHorizontal: 4 }}>
-          <Button title="Xuống hàng" onPress={() => handleAction('UNLOAD')} />
+          <Button title="Xuống hàng" onPress={() => handleAction('Xuống hàng')} />
         </View>
         <View style={{ flex: 1, marginHorizontal: 4 }}>
-          <Button title="Vào kho" onPress={() => handleAction('STORE')} />
+          <Button title="Vào kho" onPress={() => handleAction('Lưu kho')} />
         </View>
       </View>
     </View>
