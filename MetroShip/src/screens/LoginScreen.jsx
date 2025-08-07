@@ -48,7 +48,7 @@ export default function LoginScreen() {
         throw new Error(result?.message || 'Đăng nhập thất bại');
       }
 
-      // ✅ Kiểm tra quyền "CargoLoader"
+      //Kiểm tra quyền "CargoLoader"
       const assignmentRoles = result?.staffAssignments?.map(s => s.assignedRole);
       const hasCargoRole = assignmentRoles?.includes('CargoLoader');
 
@@ -60,7 +60,7 @@ export default function LoginScreen() {
         return;
       }
 
-      // ✅ Lưu thông tin sau khi login thành công
+      //Lưu thông tin sau khi login thành công
       await AsyncStorage.setItem('auth', JSON.stringify(result));
       await AsyncStorage.setItem('token', result.token);
       await AsyncStorage.setItem('stationId', result.staffAssignments?.[0]?.stationId || '');
