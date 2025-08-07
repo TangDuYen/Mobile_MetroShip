@@ -9,7 +9,7 @@ import { useRoute } from '@react-navigation/native';
 
 export default function OrderDetailsScreen() {
   const route = useRoute();
-  const { trackingCode } = route.params;
+  const { trackingCode, staffId, stationId, action } = route.params;
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [parcels, setParcels] = useState([]);
@@ -88,86 +88,33 @@ export default function OrderDetailsScreen() {
     fetchTrains();
   }, [trackingCode]);
 
-  const handleAction = async (action) => {
-    try {
-      const token = await AsyncStorage.getItem('token');
+  const handleParcelAction = async (parcelCode) => {
+    const token = await AsyncStorage.getItem('token');
 
-      //Lấy leg chưa hoàn thành
-      const currentLeg = order?.shipmentItineraries?.find((leg) => !leg.isCompleted);
-      const currentLineId = currentLeg?.route?.lineId;
-      const currentStationId = currentLeg?.route?.fromStationId;
+    const currentLeg = order?.shipmentItineraries?.find((leg) => !leg.isCompleted);
+    const currentTrainId = currentLeg.trainId;
+    const trainCode = trains.find((t) => t.id === currentTrainId)?.trainCode;
 
-      if (!currentLeg || !currentStationId) {
-        Alert.alert('Không xác định được chặng hiện tại.');
-        return;
-      }
+    let endpoint = '';
+    if (action === 'Lên hàng') {
+      endpoint = `${API_URL}parcels/staff/loading/${parcelCode}/${trainCode}`;
+    } else if (action === 'Xuống hàng') {
+      endpoint = `${API_URL}parcels/staff/unloading/${parcelCode}/${trainCode}`;
+    } else if (action === 'Vào kho') {
+      endpoint = `${API_URL}parcels/staff/awaiting-delivery/${parcelCode}`;
+    }
 
-      if (action === 'Lên hàng') {
-        const availableTrains = trains.filter((t) => t.lineId === currentLineId);
-        const selectedTrainId = availableTrains[0]?.id;
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-        if (!selectedTrainId) {
-          Alert.alert('Không tìm thấy tàu trên tuyến hiện tại.');
-          return;
-        }
-
-        const res = await fetch(
-          `${API_URL}shipments/staff/assign-train?trackingCode=${trackingCode}&trainId=${selectedTrainId}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (res.ok) {
-          Alert.alert('Thành công', 'Hàng lên tàu thành công.');
-        } else {
-          Alert.alert('Lỗi', 'Không thể lên tàu.');
-        }
-
-      } else if (action === 'Xuống hàng') {
-        const res = await fetch(`${API_URL}shipments/staff/update-status-at-station`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            trackingCode: trackingCode,
-            currentStationId: currentStationId,
-          }),
-        });
-
-        if (res.ok) {
-          Alert.alert('Thành công', 'Đã cập nhật trạng thái tại trạm.');
-        } else {
-          Alert.alert('Lỗi', 'Không thể cập nhật trạng thái tại trạm.');
-        }
-
-      } else if (action === 'Vào kho') {
-        const res = await fetch(`${API_URL}shipments/staff/update-status-at-station`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            trackingCode: trackingCode,
-            currentStationId: currentStationId,
-          }),
-        });
-
-        if (res.ok) {
-          Alert.alert('Thành công', 'Đơn hàng đã được chuyển vào kho.');
-        } else {
-          Alert.alert('Lỗi', 'Không thể chuyển vào kho.');
-        }
-      }
-    } catch (err) {
-      Alert.alert('Lỗi', 'Không thể kết nối server');
+    if (res.ok) {
+      Alert.alert('Thành công', `${action} thành công cho kiện ${parcelCode}`);
+    } else {
+      Alert.alert('Lỗi', `Không thể thực hiện ${action}`);
     }
   };
 
@@ -213,35 +160,14 @@ export default function OrderDetailsScreen() {
               <Text>Khối lượng: {item.weightKg} kg</Text>
               <Text>Thể tích: {item.volumeCm3} cm³</Text>
               <Text>Giá: {item.priceVnd.toLocaleString()} VND</Text>
-              <Text>Loại: {item.parcelCategory?.categoryName}</Text>
-              <Text>
-                Bảo hiểm: {item.insuranceFeeVnd.toLocaleString()} VND
-              </Text>
+              <Button
+                title={action}
+                onPress={() => handleParcelAction(item.parcelCode)}
+              />
             </View>
           )}
         />
       )}
-
-      <View
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          marginVertical: 20,
-        }}
-      >
-        <View style={{ flex: 1, marginHorizontal: 4 }}>
-          <Button title="Lên hàng" onPress={() => handleAction('Lên hàng')} />
-        </View>
-        <View style={{ flex: 1, marginHorizontal: 4 }}>
-          <Button
-            title="Xuống hàng"
-            onPress={() => handleAction('Xuống hàng')}
-          />
-        </View>
-        <View style={{ flex: 1, marginHorizontal: 4 }}>
-          <Button title="Vào kho" onPress={() => handleAction('Lưu kho')} />
-        </View>
-      </View>
     </View>
   );
 }
