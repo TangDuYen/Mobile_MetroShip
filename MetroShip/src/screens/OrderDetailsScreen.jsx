@@ -92,7 +92,7 @@ export default function OrderDetailsScreen() {
     try {
       const token = await AsyncStorage.getItem('token');
 
-      // Lấy leg chưa hoàn thành
+      //Lấy leg chưa hoàn thành
       const currentLeg = order?.shipmentItineraries?.find((leg) => !leg.isCompleted);
       const currentLineId = currentLeg?.route?.lineId;
       const currentStationId = currentLeg?.route?.fromStationId;
@@ -123,9 +123,9 @@ export default function OrderDetailsScreen() {
         );
 
         if (res.ok) {
-          Alert.alert('✅ Thành công', 'Đã gán tàu cho đơn hàng.');
+          Alert.alert('Thành công', 'Hàng lên tàu thành công.');
         } else {
-          Alert.alert('❌ Lỗi', 'Không thể gán tàu.');
+          Alert.alert('Lỗi', 'Không thể lên tàu.');
         }
 
       } else if (action === 'Xuống hàng') {
@@ -197,7 +197,6 @@ export default function OrderDetailsScreen() {
         <Text>Trạm hiện tại: {order.currentStationName}</Text>
         <Text>Trạng thái: {shipmentMapping[order.shipmentStatus]}</Text>
 
-        {/* Gợi ý tên tàu đang thuộc tuyến hiện tại */}
         <Text>
           Tàu đề xuất:{' '}
           {trains.find((t) => t.lineId === order?.shipmentItineraries?.find((leg) => !leg.isCompleted)?.lineId)?.trainCode || 'Không có'}
