@@ -129,7 +129,7 @@ export default function OrderDetailsScreen() {
         }
 
       } else if (action === 'Xuống hàng') {
-        const res = await fetch(`${API_URL}shipments/staff/update-status-at-station`, {
+        const res = await fetch(`${API_URL}shipments/staff/update-unloading`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -148,7 +148,7 @@ export default function OrderDetailsScreen() {
         }
 
       } else if (action === 'Vào kho') {
-        const res = await fetch(`${API_URL}shipments/staff/update-status-at-station`, {
+        const res = await fetch(`${API_URL}shipments/staff/update-storage`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
