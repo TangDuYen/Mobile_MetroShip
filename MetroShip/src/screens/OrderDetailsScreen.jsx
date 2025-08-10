@@ -1,4 +1,4 @@
-import { ActivityIndicator, Alert, Button, FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Button, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import React, { useEffect, useState } from 'react';
 
 import { API_URL } from '../config/api';
@@ -88,6 +88,42 @@ export default function OrderDetailsScreen() {
     fetchTrains();
   }, [trackingCode]);
 
+  const handleLostParcel = (parcelCode) => {
+    Alert.alert(
+      'Xác nhận',
+      `Bạn có chắc muốn báo mất kiện ${parcelCode} không?`,
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: 'Xác nhận',
+          onPress: async () => {
+            const token = await AsyncStorage.getItem('token');
+            try {
+              const res = await fetch(`${API_URL}parcels/staff/lost/${parcelCode}`, {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+
+              if (res.ok) {
+                Alert.alert('Thành công', `Đã báo mất kiện ${parcelCode}`);
+              } else {
+                Alert.alert('Lỗi', `Không thể báo mất kiện ${parcelCode}`);
+              }
+            } catch (error) {
+              Alert.alert('Lỗi', 'Không thể kết nối server');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+
   const handleParcelAction = async (parcelCode) => {
     const token = await AsyncStorage.getItem('token');
 
@@ -129,25 +165,20 @@ export default function OrderDetailsScreen() {
         <Button title="Quay lại" onPress={() => navigation.navigate('Home')} />
       </View>
       <View style={styles.shipmentItem}>
-        <Text style={{ fontWeight: 'bold', fontSize: 20 }}>
+        <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 10 }}>
           Mã đơn: {order.trackingCode}
         </Text>
-        <Text>Tổng chi phí: {order.totalCostVnd.toLocaleString()} VND</Text>
-        <Text>Tổng khối lượng: {order.totalWeightKg.toLocaleString()} kg</Text>
-        <Text>Tổng thể tích: {order.totalVolumeM3} m3</Text>
-        <Text>Người gửi: {order.senderName}</Text>
-        <Text>SĐT: {order.senderPhone}</Text>
-        <Text>Người nhận: {order.recipientName}</Text>
-        <Text>SĐT: {order.recipientPhone}</Text>
-        <Text>Trạm gửi: {order.departureStationName}</Text>
-        <Text>Trạm nhận: {order.destinationStationName}</Text>
-        <Text>Trạm hiện tại: {order.currentStationName}</Text>
-        <Text>Trạng thái: {shipmentMapping[order.shipmentStatus]}</Text>
-
-        <Text>
-          Tàu đề xuất:{' '}
-          {trains.find((t) => t.lineId === order?.shipmentItineraries?.find((leg) => !leg.isCompleted)?.lineId)?.trainCode || 'Không có'}
-        </Text>
+        <Text style ={styles.parcelInfo}>Tổng chi phí: {order.totalCostVnd.toLocaleString()} VND</Text>
+        <Text style ={styles.parcelInfo}>Tổng khối lượng: {order.totalWeightKg.toLocaleString()} kg</Text>
+        <Text style ={styles.parcelInfo}>Tổng thể tích: {order.totalVolumeM3} m3</Text>
+        <Text style ={styles.parcelInfo}>Người gửi: {order.senderName}</Text>
+        <Text style ={styles.parcelInfo}>SĐT: {order.senderPhone}</Text>
+        <Text style ={styles.parcelInfo}>Người nhận: {order.recipientName}</Text>
+        <Text style ={styles.parcelInfo}>SĐT: {order.recipientPhone}</Text>
+        <Text style ={styles.parcelInfo}>Trạm gửi: {order.departureStationName}</Text>
+        <Text style ={styles.parcelInfo}>Trạm nhận: {order.destinationStationName}</Text>
+        <Text style ={styles.parcelInfo}>Trạm hiện tại: {order.currentStationName}</Text>
+        <Text style ={styles.parcelInfo}>Trạng thái: {shipmentMapping[order.shipmentStatus]}</Text>
       </View>
 
       {parcels.length > 0 && (
@@ -160,10 +191,21 @@ export default function OrderDetailsScreen() {
               <Text>Khối lượng: {item.weightKg} kg</Text>
               <Text>Thể tích: {item.volumeCm3} cm³</Text>
               <Text>Giá: {item.priceVnd.toLocaleString()} VND</Text>
-              <Button
-                title={action}
-                onPress={() => handleParcelAction(item.parcelCode)}
-              />
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity
+                  style={[styles.customButton, { backgroundColor: '#007BFF' }]}
+                  onPress={() => handleParcelAction(item.parcelCode)}
+                >
+                  <Text style={styles.customButtonText}>{action}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.customButton, { backgroundColor: 'red' }]}
+                  onPress={() => handleLostParcel(item.parcelCode)}
+                >
+                  <Text style={styles.customButtonText}>Báo mất</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
         />
@@ -174,7 +216,7 @@ export default function OrderDetailsScreen() {
 
 const styles = StyleSheet.create({
   shipmentItem: {
-    marginBottom: 16,
+    marginBottom: 10,
   },
   parcelItem: {
     backgroundColor: '#f9f9f9',
@@ -188,5 +230,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
     marginBottom: 6,
+  },
+  parcelInfo: {
+  marginBottom: 4,
+},
+  customButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10
+  },
+  customButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });
