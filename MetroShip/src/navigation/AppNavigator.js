@@ -2,6 +2,7 @@ import HomeScreen from '../screens/HomeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import { NavigationContainer } from '@react-navigation/native';
 import OrderDetailsScreen from '../screens/OrderDetailsScreen';
+import ScanParcelScreen from '../screens/ScanParcelScreen';
 import ScanScreen from '../screens/ScanScreen';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
@@ -15,6 +16,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Scan" component={ScanScreen} />
         <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
+        <Stack.Screen name="ScanParcel" component={ScanParcelScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

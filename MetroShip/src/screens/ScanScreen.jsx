@@ -25,12 +25,6 @@ export default function ScanScreen() {
   const handleBarCodeScanned = ({ data, bounds }) => {
     if (scannedRef.current) return;
 
-    // Giả lập kiểm tra xem QR nằm trong khung giữa màn hình (bạn có thể chỉnh thêm nếu cần chính xác)
-    const screenWidth = 360; // hoặc Dimensions.get('window').width
-    const screenHeight = 640; // hoặc Dimensions.get('window').height
-
-    // TODO: Nếu cần chính xác hơn, bạn cần dùng thư viện barcodeScanner tích hợp native (ví dụ ML Kit) để có bounding box.
-
     scannedRef.current = true;
     setScanned(true);
     setTrackingCode(data);
