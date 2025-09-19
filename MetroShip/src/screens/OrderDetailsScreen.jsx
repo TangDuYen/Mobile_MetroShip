@@ -229,7 +229,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   parcelItem: {
-    backgroundColor: '#f9f9f9',
     padding: 12,
     borderRadius: 8,
     marginBottom: 10,
