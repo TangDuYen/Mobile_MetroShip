@@ -133,7 +133,6 @@ export default function OrderDetailsScreen() {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
-
       let data;
       try {
         data = await res.json();
