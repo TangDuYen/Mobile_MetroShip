@@ -42,6 +42,9 @@ export default function LoginScreen() {
         }),
       });
 
+      console.log(username);
+      
+
       const result = await res.json();
 
       if (!res.ok) {
@@ -55,7 +58,7 @@ export default function LoginScreen() {
       if (!hasCargoRole) {
         Alert.alert(
           'Thông báo',
-          'Bạn cần tài khoản nhân viên chuyển hàng (CargoLoader) để sử dụng.'
+          'Bạn cần tài khoản nhân viên chuyển hàng để sử dụng.'
         );
         return;
       }

@@ -1,18 +1,26 @@
-import { ActivityIndicator, Alert, Button, FlatList, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Button,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import React, { useEffect, useState } from 'react';
+import shipmentMapping, { parcelStatusMap } from './../config/mapping';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { API_URL } from '../config/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import shipmentMapping from './../config/mapping';
-import { useNavigation } from '@react-navigation/native';
-import { useRoute } from '@react-navigation/native';
 
 export default function OrderDetailsScreen() {
   const route = useRoute();
-  const { trackingCode } = route.params;
+  const { trackingCode, staffId, stationId, action } = route.params;
+
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [parcels, setParcels] = useState([]);
   const [trains, setTrains] = useState([]);
   const [metroLines, setMetroLines] = useState([]);
   const navigation = useNavigation();
@@ -22,30 +30,12 @@ export default function OrderDetailsScreen() {
       try {
         const token = await AsyncStorage.getItem('token');
 
-        // Get shipment
+        // Lấy shipment (đã có luôn parcels bên trong)
         const res = await fetch(`${API_URL}shipments/${trackingCode}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
         const result = await res.json();
-        const shipment = result?.data;
-
-        // Get parcels
-        const parcelsRes = await fetch(`${API_URL}parcels?PageSize=1000`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const parcelsData = await parcelsRes.json();
-        const allParcels = parcelsData?.data?.items || [];
-
-        const shipmentParcels = allParcels.filter(
-          (p) => p.shipmentId === shipment.id
-        );
-
-        setOrder(shipment);
-        setParcels(shipmentParcels);
+        setOrder(result?.data);
       } catch (err) {
         Alert.alert('Lỗi', 'Không lấy được chi tiết đơn hàng');
       } finally {
@@ -57,13 +47,11 @@ export default function OrderDetailsScreen() {
       try {
         const token = await AsyncStorage.getItem('token');
         const res = await fetch(`${API_URL}metro-lines/dropdown`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
         const result = await res.json();
         setMetroLines(result?.data || []);
-      } catch (error) {
+      } catch {
         Alert.alert('Lỗi', 'Không thể kết nối server');
       }
     };
@@ -72,13 +60,11 @@ export default function OrderDetailsScreen() {
       try {
         const token = await AsyncStorage.getItem('token');
         const res = await fetch(`${API_URL}metro-trains`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
         const result = await res.json();
         setTrains(result?.data?.items || []);
-      } catch (error) {
+      } catch {
         Alert.alert('Lỗi', 'Không thể kết nối server');
       }
     };
@@ -88,170 +74,160 @@ export default function OrderDetailsScreen() {
     fetchTrains();
   }, [trackingCode]);
 
-  const handleAction = async (action) => {
+  const handleLostParcel = (parcelCode) => {
+    Alert.alert(
+      'Xác nhận',
+      `Bạn có chắc muốn báo mất kiện ${parcelCode} không?`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Xác nhận',
+          onPress: async () => {
+            const token = await AsyncStorage.getItem('token');
+
+            const currentTrainId = order?.shipmentItineraries[0].trainId;
+            const trainCode = trains.find((t) => t.id === currentTrainId)?.trainCode;
+
+            let endpoint = '';
+            if (action === 'Lên hàng') {
+              endpoint = `${API_URL}parcels/staff/loading/${parcelCode}/${trainCode}?isLost=true`;
+            } else if (action === 'Xuống hàng') {
+              endpoint = `${API_URL}parcels/staff/unloading/${parcelCode}/${trainCode}?isLost=true`;
+            } else if (action === 'Vào kho') {
+              endpoint = `${API_URL}parcels/staff/awaiting-delivery/${parcelCode}?isLost=true`;
+            }
+
+            const res = await fetch(endpoint, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (res.ok) {
+              Alert.alert('Thành công', `Đã báo mất thành công cho kiện ${parcelCode}`);
+            } else {
+              Alert.alert('Lỗi', `Không thể thực hiện ${action}`);
+            }
+          },
+        }
+      ]
+    );
+  };
+
+  const handleParcelAction = async (parcelCode) => {
     try {
       const token = await AsyncStorage.getItem('token');
 
-      //Lấy leg chưa hoàn thành
-      const currentLeg = order?.shipmentItineraries?.find((leg) => !leg.isCompleted);
-      const currentLineId = currentLeg?.route?.lineId;
-      const currentStationId = currentLeg?.route?.fromStationId;
+      const currentTrainId = order?.shipmentItineraries[0].trainId;
+      const trainCode = trains.find((t) => t.id === currentTrainId)?.trainCode;
 
-      if (!currentLeg || !currentStationId) {
-        Alert.alert('Không xác định được chặng hiện tại.');
-        return;
+      let endpoint = '';
+      if (action === 'Lên hàng') {
+        endpoint = `${API_URL}parcels/staff/loading/${parcelCode}/${trainCode}?isLost=false`;
+      } else if (action === 'Xuống hàng') {
+        endpoint = `${API_URL}parcels/staff/unloading/${parcelCode}/${trainCode}?isLost=false`;
+      } else if (action === 'Vào kho') {
+        endpoint = `${API_URL}parcels/staff/awaiting-delivery/${parcelCode}?isLost=false`;
       }
 
-      if (action === 'Lên hàng') {
-        const availableTrains = trains.filter((t) => t.lineId === currentLineId);
-        const selectedTrainId = availableTrains[0]?.id;
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        data = await res.text();
+      }
 
-        if (!selectedTrainId) {
-          Alert.alert('Không tìm thấy tàu trên tuyến hiện tại.');
-          return;
-        }
-
-        const res = await fetch(
-          `${API_URL}shipments/staff/assign-train?trackingCode=${trackingCode}&trainId=${selectedTrainId}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (res.ok) {
-          Alert.alert('Thành công', 'Hàng lên tàu thành công.');
-        } else {
-          Alert.alert('Lỗi', 'Không thể lên tàu.');
-        }
-
-      } else if (action === 'Xuống hàng') {
-        const res = await fetch(`${API_URL}shipments/staff/update-unloading`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            trackingCode: trackingCode,
-            currentStationId: currentStationId,
-          }),
-        });
-
-        if (res.ok) {
-          Alert.alert('Thành công', 'Đã cập nhật trạng thái tại trạm.');
-        } else {
-          Alert.alert('Lỗi', 'Không thể cập nhật trạng thái tại trạm.');
-        }
-
-      } else if (action === 'Vào kho') {
-        const res = await fetch(`${API_URL}shipments/staff/update-storage`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            trackingCode: trackingCode,
-            currentStationId: currentStationId,
-          }),
-        });
-
-        if (res.ok) {
-          Alert.alert('Thành công', 'Đơn hàng đã được chuyển vào kho.');
-        } else {
-          Alert.alert('Lỗi', 'Không thể chuyển vào kho.');
-        }
+      if (res.ok) {
+        Alert.alert('Thành công', `${action} thành công cho kiện ${parcelCode}`);
+      } else {
+        Alert.alert('Lỗi', data?.message || JSON.stringify(data) || 'Có lỗi xảy ra');
       }
     } catch (err) {
-      Alert.alert('Lỗi', 'Không thể kết nối server');
+      console.error(err);
+      Alert.alert('Lỗi mạng', err.message);
     }
   };
 
 
   if (loading) return <ActivityIndicator size="large" />;
-
   if (!order) return <Text>Không tìm thấy đơn hàng.</Text>;
+
+  const currentTrainId = order?.shipmentItineraries?.[0]?.trainId;
+  const currentTrainCode = trains.find((t) => t.id === currentTrainId)?.trainCode || null;
 
   return (
     <View style={{ padding: 16, marginTop: 20 }}>
       <View style={{ marginBottom: 12 }}>
         <Button title="Quay lại" onPress={() => navigation.navigate('Home')} />
       </View>
+
+      {/* Thông tin đơn */}
       <View style={styles.shipmentItem}>
-        <Text style={{ fontWeight: 'bold', fontSize: 20 }}>
+        <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 10 }}>
           Mã đơn: {order.trackingCode}
         </Text>
-        <Text>Tổng chi phí: {order.totalCostVnd.toLocaleString()} VND</Text>
-        <Text>Tổng khối lượng: {order.totalWeightKg.toLocaleString()} kg</Text>
-        <Text>Tổng thể tích: {order.totalVolumeM3} m3</Text>
-        <Text>Người gửi: {order.senderName}</Text>
-        <Text>SĐT: {order.senderPhone}</Text>
-        <Text>Người nhận: {order.recipientName}</Text>
-        <Text>SĐT: {order.recipientPhone}</Text>
-        <Text>Trạm gửi: {order.departureStationName}</Text>
-        <Text>Trạm nhận: {order.destinationStationName}</Text>
-        <Text>Trạm hiện tại: {order.currentStationName}</Text>
-        <Text>Trạng thái: {shipmentMapping[order.shipmentStatus]}</Text>
-
-        <Text>
-          Tàu đề xuất:{' '}
-          {trains.find((t) => t.lineId === order?.shipmentItineraries?.find((leg) => !leg.isCompleted)?.lineId)?.trainCode || 'Không có'}
-        </Text>
+        <Text style={styles.parcelInfo}>Tổng chi phí: {order.totalCostVnd.toLocaleString()} VND</Text>
+        <Text style={styles.parcelInfo}>Tổng khối lượng: {order.totalWeightKg.toLocaleString()} kg</Text>
+        <Text style={styles.parcelInfo}>Tổng thể tích: {order.totalVolumeM3} m³</Text>
+        <Text style={styles.parcelInfo}>Người gửi: {order.senderName}</Text>
+        <Text style={styles.parcelInfo}>SĐT: {order.senderPhone}</Text>
+        <Text style={styles.parcelInfo}>Người nhận: {order.recipientName}</Text>
+        <Text style={styles.parcelInfo}>SĐT: {order.recipientPhone}</Text>
+        <Text style={styles.parcelInfo}>Trạm gửi: {order.departureStationName}</Text>
+        <Text style={styles.parcelInfo}>Trạm nhận: {order.destinationStationName}</Text>
+        <Text style={styles.parcelInfo}>Trạm hiện tại: {order.currentStationName}</Text>
+        <Text style={styles.parcelInfo}>Trạng thái: {shipmentMapping[order.shipmentStatus]}</Text>
       </View>
 
-      {parcels.length > 0 && (
+      {/* Danh sách kiện */}
+      {order.parcels?.length > 0 && (
         <FlatList
-          data={parcels}
-          keyExtractor={(item) => item.id}
+          data={order.parcels}
+          keyExtractor={(item) => String(item.id)}
           renderItem={({ item }) => (
             <View style={styles.parcelItem}>
               <Text style={styles.parcelCode}>{item.parcelCode}</Text>
               <Text>Khối lượng: {item.weightKg} kg</Text>
               <Text>Thể tích: {item.volumeCm3} cm³</Text>
               <Text>Giá: {item.priceVnd.toLocaleString()} VND</Text>
-              <Text>Loại: {item.parcelCategory?.categoryName}</Text>
-              <Text>
-                Bảo hiểm: {item.insuranceFeeVnd.toLocaleString()} VND
-              </Text>
+              <Text>Trạng thái: {parcelStatusMap[item.status]}</Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity
+                  style={[styles.customButton, { backgroundColor: '#007BFF' }]}
+                  // onPress={() => handleParcelAction(item.parcelCode)}
+                  onPress={() =>
+                    navigation.navigate('ScanParcel', {
+                      action,
+                      trainCode: currentTrainCode,
+                    })
+                  }
+                >
+                  <Text style={styles.customButtonText}>{action}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.customButton, { backgroundColor: 'red' }]}
+                  onPress={() => handleLostParcel(item.parcelCode)}
+                >
+                  <Text style={styles.customButtonText}>Báo mất</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
         />
       )}
-
-      <View
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          marginVertical: 20,
-        }}
-      >
-        <View style={{ flex: 1, marginHorizontal: 4 }}>
-          <Button title="Lên hàng" onPress={() => handleAction('Lên hàng')} />
-        </View>
-        <View style={{ flex: 1, marginHorizontal: 4 }}>
-          <Button
-            title="Xuống hàng"
-            onPress={() => handleAction('Xuống hàng')}
-          />
-        </View>
-        <View style={{ flex: 1, marginHorizontal: 4 }}>
-          <Button title="Vào kho" onPress={() => handleAction('Lưu kho')} />
-        </View>
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   shipmentItem: {
-    marginBottom: 16,
+    marginBottom: 10,
   },
   parcelItem: {
-    backgroundColor: '#f9f9f9',
     padding: 12,
     borderRadius: 8,
     marginBottom: 10,
@@ -262,5 +238,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
     marginBottom: 6,
+  },
+  parcelInfo: {
+    marginBottom: 4,
+  },
+  customButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  customButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });
