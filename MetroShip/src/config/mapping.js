@@ -1,4 +1,4 @@
-export default shipmentMapping = {
+const shipmentMapping = {
   0: 'Chờ thanh toán',
   1: 'Từ chối',
   2: 'Không thanh toán',
@@ -21,7 +21,9 @@ export default shipmentMapping = {
   25: 'Chờ bồi thường',
   26: 'Đã bồi thường',
   27: 'Đã giao. Chờ bồi thường'
-};
+}
+
+export default shipmentMapping;
 
 export const parcelStatusMap = {
   1: "Đã đặt",
