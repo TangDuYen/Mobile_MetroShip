@@ -29,8 +29,6 @@ export default function OrderDetailsScreen() {
     const fetchDetails = async () => {
       try {
         const token = await AsyncStorage.getItem('token');
-
-        // Lấy shipment (đã có luôn parcels bên trong)
         const res = await fetch(`${API_URL}shipments/${trackingCode}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -113,50 +111,65 @@ export default function OrderDetailsScreen() {
     );
   };
 
-  const handleParcelAction = async (parcelCode) => {
-    try {
-      const token = await AsyncStorage.getItem('token');
+  // const handleParcelAction = async (parcelCode) => {
+  //   try {
+  //     const token = await AsyncStorage.getItem('token');
 
-      const currentTrainId = order?.shipmentItineraries[0].trainId;
-      const trainCode = trains.find((t) => t.id === currentTrainId)?.trainCode;
+  //     const currentTrainId = order?.shipmentItineraries[0].trainId;
+  //     const trainCode = trains.find((t) => t.id === currentTrainId)?.trainCode;
 
-      let endpoint = '';
-      if (action === 'Lên hàng') {
-        endpoint = `${API_URL}parcels/staff/loading/${parcelCode}/${trainCode}?isLost=false`;
-      } else if (action === 'Xuống hàng') {
-        endpoint = `${API_URL}parcels/staff/unloading/${parcelCode}/${trainCode}?isLost=false`;
-      } else if (action === 'Vào kho') {
-        endpoint = `${API_URL}parcels/staff/awaiting-delivery/${parcelCode}?isLost=false`;
-      }
+  //     let endpoint = '';
+  //     if (action === 'Lên hàng') {
+  //       endpoint = `${API_URL}parcels/staff/loading/${parcelCode}/${trainCode}?isLost=false`;
+  //     } else if (action === 'Xuống hàng') {
+  //       endpoint = `${API_URL}parcels/staff/unloading/${parcelCode}/${trainCode}?isLost=false`;
+  //     } else if (action === 'Vào kho') {
+  //       endpoint = `${API_URL}parcels/staff/awaiting-delivery/${parcelCode}?isLost=false`;
+  //     }
 
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      let data;
-      try {
-        data = await res.json();
-      } catch {
-        data = await res.text();
-      }
+  //     const res = await fetch(endpoint, {
+  //       method: 'POST',
+  //       headers: { Authorization: `Bearer ${token}` },
+  //     });
+  //     let data;
+  //     try {
+  //       data = await res.json();
+  //     } catch {
+  //       data = await res.text();
+  //     }
 
-      if (res.ok) {
-        Alert.alert('Thành công', `${action} thành công cho kiện ${parcelCode}`);
-      } else {
-        Alert.alert('Lỗi', data?.message || JSON.stringify(data) || 'Có lỗi xảy ra');
-      }
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Lỗi mạng', err.message);
-    }
-  };
+  //     if (res.ok) {
+  //       Alert.alert('Thành công', `${action} thành công cho kiện ${parcelCode}`);
+  //     } else {
+  //       Alert.alert('Lỗi', data?.message || JSON.stringify(data) || 'Có lỗi xảy ra');
+  //     }
+  //   } catch (err) {
+  //     console.error(err);
+  //     Alert.alert('Lỗi mạng', err.message);
+  //   }
+  // };
 
 
   if (loading) return <ActivityIndicator size="large" />;
   if (!order) return <Text>Không tìm thấy đơn hàng.</Text>;
+  let currentLeg;
 
-  const currentTrainId = order?.shipmentItineraries?.[0]?.trainId;
-  const currentTrainCode = trains.find((t) => t.id === currentTrainId)?.trainCode || null;
+  if (action === "Xuống hàng") {
+    currentLeg = order?.shipmentItineraries?.sort(
+      (a, b) => b.legOrder - a.legOrder
+    )?.[0];
+  } else {
+    currentLeg = order?.shipmentItineraries
+      ?.filter((it) => !it.isCompleted)
+      ?.sort((a, b) => a.legOrder - b.legOrder)?.[0];
+  }
+
+  const currentTrainId = currentLeg?.trainId || null;
+  const currentTrainCode =
+    trains.find((t) => t.id === currentTrainId)?.trainCode || 'Chưa xác định';
+  if (!currentLeg) {
+    console.warn("Không tìm thấy chặng nào chưa hoàn thành.");
+  }
 
   return (
     <View style={{ padding: 16, marginTop: 20 }}>
