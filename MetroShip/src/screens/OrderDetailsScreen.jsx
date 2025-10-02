@@ -72,84 +72,6 @@ export default function OrderDetailsScreen() {
     fetchTrains();
   }, [trackingCode]);
 
-  const handleLostParcel = (parcelCode) => {
-    Alert.alert(
-      'Xác nhận',
-      `Bạn có chắc muốn báo mất kiện ${parcelCode} không?`,
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Xác nhận',
-          onPress: async () => {
-            const token = await AsyncStorage.getItem('token');
-
-            const currentTrainId = order?.shipmentItineraries[0].trainId;
-            const trainCode = trains.find((t) => t.id === currentTrainId)?.trainCode;
-
-            let endpoint = '';
-            if (action === 'Lên hàng') {
-              endpoint = `${API_URL}parcels/staff/loading/${parcelCode}/${trainCode}?isLost=true`;
-            } else if (action === 'Xuống hàng') {
-              endpoint = `${API_URL}parcels/staff/unloading/${parcelCode}/${trainCode}?isLost=true`;
-            } else if (action === 'Vào kho') {
-              endpoint = `${API_URL}parcels/staff/awaiting-delivery/${parcelCode}?isLost=true`;
-            }
-
-            const res = await fetch(endpoint, {
-              method: 'POST',
-              headers: { Authorization: `Bearer ${token}` },
-            });
-
-            if (res.ok) {
-              Alert.alert('Thành công', `Đã báo mất thành công cho kiện ${parcelCode}`);
-            } else {
-              Alert.alert('Lỗi', `Không thể thực hiện ${action}`);
-            }
-          },
-        }
-      ]
-    );
-  };
-
-  // const handleParcelAction = async (parcelCode) => {
-  //   try {
-  //     const token = await AsyncStorage.getItem('token');
-
-  //     const currentTrainId = order?.shipmentItineraries[0].trainId;
-  //     const trainCode = trains.find((t) => t.id === currentTrainId)?.trainCode;
-
-  //     let endpoint = '';
-  //     if (action === 'Lên hàng') {
-  //       endpoint = `${API_URL}parcels/staff/loading/${parcelCode}/${trainCode}?isLost=false`;
-  //     } else if (action === 'Xuống hàng') {
-  //       endpoint = `${API_URL}parcels/staff/unloading/${parcelCode}/${trainCode}?isLost=false`;
-  //     } else if (action === 'Vào kho') {
-  //       endpoint = `${API_URL}parcels/staff/awaiting-delivery/${parcelCode}?isLost=false`;
-  //     }
-
-  //     const res = await fetch(endpoint, {
-  //       method: 'POST',
-  //       headers: { Authorization: `Bearer ${token}` },
-  //     });
-  //     let data;
-  //     try {
-  //       data = await res.json();
-  //     } catch {
-  //       data = await res.text();
-  //     }
-
-  //     if (res.ok) {
-  //       Alert.alert('Thành công', `${action} thành công cho kiện ${parcelCode}`);
-  //     } else {
-  //       Alert.alert('Lỗi', data?.message || JSON.stringify(data) || 'Có lỗi xảy ra');
-  //     }
-  //   } catch (err) {
-  //     console.error(err);
-  //     Alert.alert('Lỗi mạng', err.message);
-  //   }
-  // };
-
-
   if (loading) return <ActivityIndicator size="large" />;
   if (!order) return <Text>Không tìm thấy đơn hàng.</Text>;
   let currentLeg;
@@ -170,6 +92,42 @@ export default function OrderDetailsScreen() {
   if (!currentLeg) {
     console.warn("Không tìm thấy chặng nào chưa hoàn thành.");
   }
+
+  const handleLostParcel = (parcelCode) => {
+    Alert.alert(
+      'Xác nhận',
+      `Bạn có chắc muốn báo mất kiện ${parcelCode} không?`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Xác nhận',
+          onPress: async () => {
+            const token = await AsyncStorage.getItem('token');
+
+            let endpoint = '';
+            if (action === 'Lên hàng') {
+              endpoint = `${API_URL}parcels/staff/loading/${parcelCode}/${currentTrainCode}?isLost=true`;
+            } else if (action === 'Xuống hàng') {
+              endpoint = `${API_URL}parcels/staff/unloading/${parcelCode}/${currentTrainCode}?isLost=true`;
+            } else if (action === 'Vào kho') {
+              endpoint = `${API_URL}parcels/staff/awaiting-delivery/${parcelCode}?isLost=true`;
+            }
+
+            const res = await fetch(endpoint, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (res.ok) {
+              Alert.alert('Thành công', `Đã báo mất thành công cho kiện ${parcelCode}`);
+            } else {
+              Alert.alert('Lỗi', `Không thể thực hiện ${action}`);
+            }
+          },
+        }
+      ]
+    );
+  };
 
   return (
     <View style={{ padding: 16, marginTop: 20 }}>
