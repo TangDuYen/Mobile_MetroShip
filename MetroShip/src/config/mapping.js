@@ -31,5 +31,8 @@ export const parcelStatusMap = {
   3: "Bị hư hại",
   4: "Bị mất",
   5: "Đã hủy",
+  6: "Đã hoàn",
+  7: "Đã giao",
+  8: "Bị từ chối",
 }
 

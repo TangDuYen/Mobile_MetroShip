@@ -8,9 +8,9 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import shipmentMapping, { parcelStatusMap } from './../config/mapping';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 
 import { API_URL } from '../config/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -24,53 +24,79 @@ export default function OrderDetailsScreen() {
   const [trains, setTrains] = useState([]);
   const [metroLines, setMetroLines] = useState([]);
   const navigation = useNavigation();
+  const [parcels, setParcels] = useState([]);
+
+
+  const fetchDetails = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+
+      const res = await fetch(`${API_URL}shipments/${trackingCode}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await res.json();
+      const shipmentData = result?.data;
+      setOrder(shipmentData);
+
+      const parcelCodes = shipmentData?.parcels?.map((p) => p.parcelCode) || [];
+
+      const parcelDetails = await Promise.all(
+        (shipmentData?.parcels || []).map(async (p) => {
+          const parcelRes = await fetch(`${API_URL}parcels/${p.parcelCode}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const parcelJson = await parcelRes.json();
+          return parcelJson?.data ? { ...p, ...parcelJson.data } : p;
+        })
+      );
+      setParcels(parcelDetails);
+
+
+    } catch (err) {
+      console.error("Lỗi lấy chi tiết đơn:", err);
+      Alert.alert('Lỗi', 'Không lấy được chi tiết đơn hàng');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMetroLines = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const res = await fetch(`${API_URL}metro-lines/dropdown`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await res.json();
+      setMetroLines(result?.data || []);
+    } catch {
+      Alert.alert('Lỗi', 'Không thể kết nối server');
+    }
+  };
+
+  const fetchTrains = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const res = await fetch(`${API_URL}metro-trains`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await res.json();
+      setTrains(result?.data?.items || []);
+    } catch {
+      Alert.alert('Lỗi', 'Không thể kết nối server');
+    }
+  };
 
   useEffect(() => {
-    const fetchDetails = async () => {
-      try {
-        const token = await AsyncStorage.getItem('token');
-        const res = await fetch(`${API_URL}shipments/${trackingCode}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const result = await res.json();
-        setOrder(result?.data);
-      } catch (err) {
-        Alert.alert('Lỗi', 'Không lấy được chi tiết đơn hàng');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const fetchMetroLines = async () => {
-      try {
-        const token = await AsyncStorage.getItem('token');
-        const res = await fetch(`${API_URL}metro-lines/dropdown`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const result = await res.json();
-        setMetroLines(result?.data || []);
-      } catch {
-        Alert.alert('Lỗi', 'Không thể kết nối server');
-      }
-    };
-
-    const fetchTrains = async () => {
-      try {
-        const token = await AsyncStorage.getItem('token');
-        const res = await fetch(`${API_URL}metro-trains`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const result = await res.json();
-        setTrains(result?.data?.items || []);
-      } catch {
-        Alert.alert('Lỗi', 'Không thể kết nối server');
-      }
-    };
-
     fetchDetails();
     fetchMetroLines();
     fetchTrains();
   }, [trackingCode]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchDetails();
+    }, [trackingCode])
+  );
 
   if (loading) return <ActivityIndicator size="large" />;
   if (!order) return <Text>Không tìm thấy đơn hàng.</Text>;
@@ -103,7 +129,6 @@ export default function OrderDetailsScreen() {
           text: 'Xác nhận',
           onPress: async () => {
             const token = await AsyncStorage.getItem('token');
-
             let endpoint = '';
             if (action === 'Lên hàng') {
               endpoint = `${API_URL}parcels/staff/loading/${parcelCode}/${currentTrainCode}?isLost=true`;
@@ -129,6 +154,25 @@ export default function OrderDetailsScreen() {
     );
   };
 
+  const getDisabledButtons = (parcelTrackings = []) => {
+    if (!parcelTrackings.length) return [];
+
+    const latestTracking = parcelTrackings[parcelTrackings.length - 1];
+    const status = latestTracking?.trackingForShipmentStatus;
+
+    switch (status) {
+      case 9:
+        return ["lenHang", "baoMat"];
+      case 23:
+        return ["xuongHang", "baoMat"];
+      case 10:
+        return ["vaoKho", "baoMat"];
+      default:
+        return [];
+    }
+  };
+
+
   return (
     <View style={{ padding: 16, marginTop: 20 }}>
       <View style={{ marginBottom: 12 }}>
@@ -140,8 +184,8 @@ export default function OrderDetailsScreen() {
         <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 10 }}>
           Mã đơn: {order.trackingCode}
         </Text>
-        <Text style={styles.parcelInfo}>Tổng chi phí: {order.totalCostVnd.toLocaleString()} VND</Text>
-        <Text style={styles.parcelInfo}>Tổng khối lượng: {order.totalWeightKg.toLocaleString()} kg</Text>
+        <Text style={styles.parcelInfo}>Tổng chi phí: {(order.totalCostVnd ?? 0).toLocaleString()} VND</Text>
+        <Text style={styles.parcelInfo}>Tổng khối lượng: {(order.totalWeightKg ?? 0).toLocaleString()} kg</Text>
         <Text style={styles.parcelInfo}>Tổng thể tích: {order.totalVolumeM3} m³</Text>
         <Text style={styles.parcelInfo}>Người gửi: {order.senderName}</Text>
         <Text style={styles.parcelInfo}>SĐT: {order.senderPhone}</Text>
@@ -156,38 +200,50 @@ export default function OrderDetailsScreen() {
       {/* Danh sách kiện */}
       {order.parcels?.length > 0 && (
         <FlatList
-          data={order.parcels}
+          data={parcels}
           keyExtractor={(item) => String(item.id)}
-          renderItem={({ item }) => (
-            <View style={styles.parcelItem}>
-              <Text style={styles.parcelCode}>{item.parcelCode}</Text>
-              <Text>Khối lượng: {item.weightKg} kg</Text>
-              <Text>Thể tích: {item.volumeCm3} cm³</Text>
-              <Text>Giá: {item.priceVnd.toLocaleString()} VND</Text>
-              <Text>Trạng thái: {parcelStatusMap[item.status]}</Text>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity
-                  style={[styles.customButton, { backgroundColor: '#007BFF' }]}
-                  // onPress={() => handleParcelAction(item.parcelCode)}
-                  onPress={() =>
-                    navigation.navigate('ScanParcel', {
-                      action,
-                      trainCode: currentTrainCode,
-                    })
-                  }
-                >
-                  <Text style={styles.customButtonText}>{action}</Text>
-                </TouchableOpacity>
+          renderItem={({ item }) => {
+            const disabledButtons = getDisabledButtons(item.parcelTrackings);
+            return (
+              <View style={styles.parcelItem}>
+                <Text style={styles.parcelCode}>{item.parcelCode}</Text>
+                <Text>Khối lượng: {item.weightKg} kg</Text>
+                <Text>Thể tích: {item.volumeCm3} cm³</Text>
+                <Text>Giá: {(item.priceVnd ?? 0).toLocaleString()} VND</Text>
+                <Text>Trạng thái: {parcelStatusMap[item.status]}</Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {(
+                    (!(
+                      (disabledButtons.includes("lenHang") && action === "Lên hàng") ||
+                      (disabledButtons.includes("xuongHang") && action === "Xuống hàng") ||
+                      (disabledButtons.includes("vaoKho") && action === "Vào kho")
+                    ))
+                  ) && (
+                      <>
+                        <TouchableOpacity
+                          style={[styles.customButton, { backgroundColor: '#007BFF' }]}
+                          onPress={() =>
+                            navigation.navigate('ScanParcel', {
+                              action,
+                              trainCode: currentTrainCode,
+                            })
+                          }
+                        >
+                          <Text style={styles.customButtonText}>{action}</Text>
+                        </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.customButton, { backgroundColor: 'red' }]}
-                  onPress={() => handleLostParcel(item.parcelCode)}
-                >
-                  <Text style={styles.customButtonText}>Báo mất</Text>
-                </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.customButton, { backgroundColor: 'red' }]}
+                          onPress={() => handleLostParcel(item.parcelCode)}
+                        >
+                          <Text style={styles.customButtonText}>Báo mất</Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
+                </View>
               </View>
-            </View>
-          )}
+            )
+          }}
         />
       )}
     </View>

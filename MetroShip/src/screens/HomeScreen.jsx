@@ -24,12 +24,17 @@ export default function HomeScreen() {
       const role = parsed?.staffAssignments?.[0]?.assignedRole || '';
       const stationId = parsed?.staffAssignments?.[0]?.stationId || '';
       const staffId = parsed?.id || '';
+      const token = await AsyncStorage.getItem('token');
 
       setRole(role);
       setStationId(stationId);
       setStaffId(staffId);
 
-      const res = await fetch(`${API_URL}stations/${stationId}`);
+      const res = await fetch(`${API_URL}stations/${stationId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       const result = await res.json();
       setStationName(result.stationNameVi);
     };
@@ -93,9 +98,9 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   logoutButton: {
-  backgroundColor: '#FF3B30',
-  marginTop: 24,
-},
+    backgroundColor: '#FF3B30',
+    marginTop: 24,
+  },
 
 });
 
